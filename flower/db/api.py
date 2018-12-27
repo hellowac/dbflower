@@ -11,22 +11,10 @@ from __future__ import unicode_literals, absolute_import
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from tornado.options import options
 from .models import Task
 
-# conn_str = '{}+{}://{}:{}@{}:{}/{}'.format(
-#            'mysql', 'mysqlconnector', 'user', 'password', 'localhost', 'port', 'db')
-
-conn_str = '{}+{}://{}:{}@{}:{}/{}'.format(
-    'mysql', 'mysqldb', 'root', 'rootforwangchao', 'localhost', '3306', 'detection')
-
-engine = create_engine(conn_str, echo=True)
-
-DBSession = sessionmaker(bind=engine)
-
-session = DBSession()
-
-if not engine.dialect.has_table(engine, Task.__tablename__):
-    Task.metadata.create_all(engine)  # 创建表.
+session = None
 
 
 def insert_task_received(event):
@@ -121,9 +109,36 @@ event_func_map = {
 }
 
 
+def make_session():
+    global session
+
+    # conn_str = '{}+{}://{}:{}@{}:{}/{}'.format(
+    #         'mysql', 'mysqldb', 'datacenter', 'datacenter', '192.168.2.6', '3306', 'datacenter')
+
+    conn_str = '{}+{}://{}'.format('mysql', 'mysqldb', options.db_mysql)
+
+    engine = create_engine(conn_str, echo=False)  # 是否显示日志
+
+    session = sessionmaker(bind=engine, autocommit=True)()
+
+    if not engine.dialect.has_table(engine, Task.__tablename__):
+        Task.metadata.create_all(engine)  # 创建表.
+
+
 def store_event(event_type, event):
-    global event_func_map
+    global event_func_map, session
+
+    ignore_events = ['worker-heartbeat', ]
+
+    if event_type in ignore_events:
+        return
+
+    if options.db_mysql and not session:
+        make_session()
+
     if event_type.startswith('task'):
         event_func_map[event_type](event)
-        session.commit()
+    else:
+        print(f'unknow event: {event_type}')
+
 

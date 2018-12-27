@@ -16,6 +16,7 @@ from tornado.ioloop import IOLoop
 
 from celery.events import EventReceiver
 from celery.events.state import State
+from tornado.options import options
 from .db.api import store_event
 
 from . import api
@@ -41,7 +42,8 @@ class EventsState(State):
         event_type = event['type']
 
         # 存储到数据库.
-        store_event(event_type, event)
+        if options.db_mysql:
+            store_event(event_type, event)
 
         self.counter[worker_name][event_type] += 1
 

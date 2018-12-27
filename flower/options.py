@@ -35,6 +35,8 @@ define("max_tasks", type=int, default=10000,
        help="maximum number of tasks to keep in memory")
 define("db", type=str, default='flower',
        help="flower database file")
+define("db_mysql", type=str, default=None,
+        help="save tasks info to mysql e.g. root:root@localhost:3306/test")
 define("persistent", type=bool, default=False,
        help="enable persistent mode")
 define("broker_api", type=str, default=None,
