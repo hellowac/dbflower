@@ -16,6 +16,7 @@ from tornado.ioloop import IOLoop
 
 from celery.events import EventReceiver
 from celery.events.state import State
+from .db.api import store_event
 
 from . import api
 
@@ -39,6 +40,9 @@ class EventsState(State):
         worker_name = event['hostname']
         event_type = event['type']
 
+        # 存储到数据库.
+        store_event(event_type, event)
+
         self.counter[worker_name][event_type] += 1
 
         # Send event to api subscribers (via websockets)
@@ -48,6 +52,7 @@ class EventsState(State):
             cls.send_message(event)
 
         # Save the event
+        # 存储到了 State 的 tasks 和 workers 属性中. 他们分别是 LRUCache 的实例(继承自UserDict) -> celery.utils.functional.LRUCache
         super(EventsState, self).event(event)
 
 
